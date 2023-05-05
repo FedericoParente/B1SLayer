@@ -1,27 +1,46 @@
-# B1SLayer
+# B1SLayer - SAP Business One Service Layer Client for .NET
 
-[![B1SLayer](https://img.shields.io/nuget/v/B1SLayer.svg?maxAge=3600&label=B1SLayer)](https://www.nuget.org/packages/B1SLayer/)
+![B1SLayer](https://img.shields.io/nuget/v/B1SLayer.svg?maxAge=3600&label=B1SLayer)
 
-A lightweight SAP Business One Service Layer client for .NET
+B1SLayer is a lightweight, fluent, and easy-to-use SAP Business One Service Layer client for .NET developers. It simplifies the process of consuming SAP Business One Service Layer by providing:
 
-B1SLayer aims to provide:
 - Fluent and easy Service Layer requests
 - Automatic session management
 - Automatic retry of failed requests
 
-## How to use it
+## 📚 Documentation
 
-Firstly I highly recommend reading [my blog post on SAP Community](https://blogs.sap.com/2022/05/23/b1slayer-a-clean-and-easy-way-to-consume-sap-business-one-service-layer-with-.net/) where I go into more details, but here's a couple examples of what's possible (but not limited to) with B1SLayer:
+For a detailed explanation and tutorial, please refer to [this blog post on SAP Community](https://blogs.sap.com/2022/05/23/b1slayer-a-clean-and-easy-way-to-consume-sap-business-one-service-layer-with-.net/).
 
-````c#
-/* The connection object. All Service Layer requests and the session management are handled by this object
- * and therefore only one instance per company/user should be used across the entire application.
- * There's no need to manually Login! The session is managed automatically and renewed whenever necessary.
- */
+## 🚀 Getting Started
+
+### Installation
+
+Install B1SLayer from NuGet using Package Manager Console:
+
+```sh
+PM> Install-Package B1SLayer
+```
+
+Or, using .NET CLI:
+
+```sh
+dotnet add package B1SLayer
+```
+
+### Usage
+
+Below are some examples demonstrating various features and capabilities of B1SLayer:
+
+#### Creating a Connection
+
+```csharp
 var serviceLayer = new SLConnection("https://sapserver:50000/b1s/v1", "CompanyDB", "manager", "12345");
+```
 
-// Request monitoring/logging available through the methods BeforeCall, AfterCall and OnError.
-// The FlurlCall object provides various details about the request and the response.
+#### Setting Up Request Monitoring/Logging
+
+```csharp
 serviceLayer.AfterCall(async call =>
 {
     Console.WriteLine($"Request: {call.HttpRequestMessage.Method} {call.HttpRequestMessage.RequestUri}");
@@ -30,67 +49,50 @@ serviceLayer.AfterCall(async call =>
     Console.WriteLine(await call.HttpResponseMessage?.Content?.ReadAsStringAsync());
     Console.WriteLine($"Call duration: {call.Duration.Value.TotalSeconds} seconds");
 });
+```
 
-// Performs a GET on /Orders(823) and deserializes the result in a custom model class
+#### Performing GET, POST, PATCH, and DELETE Requests
+
+```csharp
+// GET request example
 var order = await serviceLayer.Request("Orders", 823).GetAsync<MyOrderModel>();
 
-// Performs a GET on /BusinessPartners with query string and header parameters supported by Service Layer
-// The result is deserialized in a List of a custom model class
-var bpList = await serviceLayer.Request("BusinessPartners")
-    .Filter("startswith(CardCode, 'c')")
-    .Select("CardCode, CardName")
-    .OrderBy("CardName")
-    .WithPageSize(50)
-    .WithCaseInsensitive()
-    .GetAsync<List<MyBusinessPartnerModel>>();
-
-// Performs a GET on /AlternateCatNum specifying the record through a composite primary key
-// The result is deserialized in a dynamic object
-var altCatNum = await serviceLayer
-    .Request("AlternateCatNum(ItemCode='A00001',CardCode='C00001',Substitute='BP01')").GetAsync();
-
-// Performs multiple GET requests on /Items until all entities in the database are obtained
-// The result is an IList of your custom model class
-var allItemsList = await serviceLayer.Request("Items").Select("ItemCode").GetAllAsync<MyItemModel>();
-
-// Performs a POST on /Orders with the provided object as the JSON body, 
-// creating a new order and deserializing the created order in a custom model class
+// POST request example
 var createdOrder = await serviceLayer.Request("Orders").PostAsync<MyOrderModel>(myNewOrderObject);
 
-// Performs a PATCH on /BusinessPartners('C00001'), updating the CardName of the Business Partner
+// PATCH request example
 await serviceLayer.Request("BusinessPartners", "C00001").PatchAsync(new { CardName = "Updated BP name" });
 
-// Performs a PATCH on /ItemImages('A00001'), adding or updating the item image
+// DELETE request example
+await serviceLayer.Request("BusinessPartners", "C00001").DeleteAsync();
+```
+
+#### Adding or Updating Item Image
+
+```csharp
 await serviceLayer.Request("ItemImages", "A00001").PatchWithFileAsync(@"C:\ItemImages\A00001.jpg");
+```
 
-// Performs a POST on /Attachments2 with the provided file as the attachment (other overloads available)
+#### Uploading Attachments
+
+```csharp
 var attachmentEntry = await serviceLayer.PostAttachmentAsync(@"C:\files\myfile.pdf");
+```
 
-// Batch requests! Performs multiple operations in SAP in a single HTTP request
-var req1 = new SLBatchRequest(
-    HttpMethod.Post, // HTTP method
-    "BusinessPartners", // resource
-    new { CardCode = "C00001", CardName = "I'm a new BP" }) // object to be sent as the JSON body
-    .WithReturnNoContent(); // Adds the header "Prefer: return-no-content" to the request
+#### Executing Batch Requests
 
-var req2 = new SLBatchRequest(HttpMethod.Patch,
-    "BusinessPartners('C00001')",
-    new { CardName = "This is my updated name" });
-
-var req3 = new SLBatchRequest(HttpMethod.Delete, "BusinessPartners('C00001')");
-
+```csharp
 HttpResponseMessage[] batchResult = await serviceLayer.PostBatchAsync(req1, req2, req3);
+```
 
-// Performs a POST on /Logout, ending the current session
+#### Logging Out
+
+```csharp
 await serviceLayer.LogoutAsync();
-````
+```
 
-## Get it on NuGet
+For more examples and detailed explanations, please refer to the [blog post on SAP Community](https://blogs.sap.com/2022/05/23/b1slayer-a-clean-and-easy-way-to-consume-sap-business-one-service-layer-with-.net/).
 
-`PM> Install-Package B1SLayer`
+## 🙏 Special Thanks
 
-`dotnet add package B1SLayer`
-
-#### Special thanks
-
-B1Slayer is based and depends on the awesome [Flurl](https://github.com/tmenier/Flurl) library, which I highly recommend checking out. Thanks, Todd!
+B1SLayer is based on and depends on the fantastic [Flurl](https://github.com/tmenier/Flurl) library. A huge thanks to Todd Menier for creating Flurl!
